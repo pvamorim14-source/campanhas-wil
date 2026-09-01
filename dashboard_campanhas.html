@@ -70,6 +70,25 @@ tbody td{padding:9px 12px;font-size:12.5px}
 .psel{border:1px solid #e0e0e0;border-radius:7px;padding:5px 7px;font-size:11px}
 .lgpd{background:#FFF8E1;border-left:4px solid #DE8B3C;padding:10px 16px;margin:14px 22px 0;border-radius:6px;font-size:11px;color:#5D4037}
 .errmsg{background:#FFEBEE;border-left:4px solid #CD3844;padding:12px 16px;margin:14px 22px;border-radius:6px;font-size:12px;color:#C62828;display:none}
+
+/* ---- Card de mecânica (consulta por ID) ---- */
+.mcard{display:none;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:16px 20px;margin-bottom:14px;border-left:4px solid #DE8B3C}
+.mctop{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.mcname{font-size:14px;color:#03103E}
+.mcname strong{font-size:15px}
+.mcid{font-family:monospace;font-size:11px;color:#6B6E85;margin-left:8px}
+.mcstatus{display:inline-flex;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.stativa{background:#e8f5e9;color:#2e7d32}
+.stfim{background:#ffebee;color:#c62828}
+.stnao{background:#eeeeee;color:#757575}
+.stneutro{background:#eeeeee;color:#757575}
+.mccamp{font-size:13px;color:#455A64;margin-bottom:2px}
+.mcperiod{font-size:11.5px;color:#9e9e9e;margin-bottom:12px}
+.mcbox{background:#FFF8F0;border-radius:10px;padding:14px 16px}
+.mctitulo{font-size:14.5px;font-weight:700;color:#03103E;margin-bottom:6px;line-height:1.4}
+.mcdetalhe{font-size:12.5px;color:#5D4037;line-height:1.5}
+.hbtn{margin-top:12px;background:transparent;border:1px solid #DE8B3C;color:#DE8B3C;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer}
+.hbtn:hover{background:#DE8B3C;color:#03103E}
 </style>
 </head>
 <body>
@@ -104,8 +123,8 @@ tbody td{padding:9px 12px;font-size:12.5px}
     <select id="f-tipo" onchange="filtrar()"><option value="">Todos</option><option value="meta">Meta</option><option value="vistoria">Vistoria</option><option value="individual">Individual</option></select></div>
   <div class="fg"><label>Meta Atingida</label>
     <select id="f-meta" onchange="filtrar()"><option value="">Todos</option><option value="Sim">✅ Sim</option><option value="Não">❌ Não</option><option value="Pendente">⏳ Pendente</option></select></div>
-  <div class="fg"><label>ID ou Primeiro Nome</label>
-    <input type="text" id="f-busca" placeholder="Ex: João ou 1360864..." oninput="filtrar()"></div>
+  <div class="fg"><label>ID do Wily</label>
+    <input type="text" id="f-busca" placeholder="Digite o ID do Wily..." oninput="filtrar()"></div>
   <button class="btnl" onclick="limpar()">🗑 Limpar</button>
 </div>
 <div class="kpis">
@@ -117,6 +136,7 @@ tbody td{padding:9px 12px;font-size:12.5px}
 <div class="lgpd">🔐 <strong>LGPD:</strong> Exibe apenas <strong>ID interno</strong> e <strong>primeiro nome</strong>. Nenhum dado de contato é exibido.</div>
 <div class="errmsg" id="errmsg"></div>
 <div class="main" style="margin-top:14px">
+<div class="mcard" id="mcard"></div>
 <div class="tc">
   <div class="tch"><h3>Detalhamento dos Wilys — Julho 2026</h3><span class="ti" id="tinfo">carregando...</span></div>
   <div id="tbody"></div>
@@ -134,7 +154,7 @@ tbody td{padding:9px 12px;font-size:12.5px}
 <script>
 const PWD="wil2026";
 const SHEETS_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR3QKK1_8srh5bXPBwPo3mSo2oDMliyea_XoDWKhjPask9sE25IVsO-StA-1fkq5Anj5tta8u7_xM91/pub?gid=1892129561&single=true&output=csv";
-let RAW=[],df=[],pg=1,sc=null,sa=true;
+let RAW=[],df=[],pg=1,sc=null,sa=true,historicoAberto=false;
 
 function auth(){
   if(document.getElementById('pwd').value===PWD){
@@ -213,11 +233,12 @@ function filtrar(){
   const fT=document.getElementById('f-tipo').value;
   const fM=document.getElementById('f-meta').value;
   const fB=document.getElementById('f-busca').value.trim().toLowerCase();
+  historicoAberto=false;
   df=RAW.filter(r=>{
     if(fC&&r.campanha!==fC)return false;
     if(fT&&r.tipo!==fT)return false;
     if(fM&&r.bateu_meta!==fM)return false;
-    if(fB&&!(r.id_willy||'').toLowerCase().includes(fB)&&!(r.primeiro_nome||'').toLowerCase().includes(fB))return false;
+    if(fB&&!(r.id_willy||'').toLowerCase().includes(fB))return false;
     return true;
   });
   pg=1;kpis();render();
@@ -236,11 +257,121 @@ function kpis(){
   document.getElementById('kv-pen').textContent=df.filter(r=>r.bateu_meta==='Pendente').length.toLocaleString('pt-BR');
 }
 
+/* ---------- Interpretação da mecânica (texto explicativo automático) ---------- */
+function parseMetaBonus(tipo,texto){
+  texto=texto||'';
+  const valorM=texto.match(/R\$\s*([\d.,]+)/i);
+  const qtdM=texto.match(/(\d+)\s*vist/i);
+  const tetoM=texto.match(/teto\D{0,4}(\d+)/i);
+  const primeiraM=/primeira|1ª/i.test(texto);
+
+  if(valorM&&primeiraM){
+    return{titulo:`Ganhe R$${valorM[1]} na sua primeira vistoria.`,
+      detalhe:'Bônus único, válido apenas na primeira vistoria realizada dentro do período da ação.'};
+  }
+  if(valorM&&tetoM){
+    const max=(parseFloat(valorM[1].replace(',','.'))*parseInt(tetoM[1])).toFixed(0);
+    return{titulo:`Ganhe R$${valorM[1]} por vistoria realizada, até o limite de ${tetoM[1]} vistorias.`,
+      detalhe:`Cada vistoria feita dentro do período soma ao bônus, até o teto de ${tetoM[1]} vistorias (máximo R$${max}). Vistorias acima do teto não geram bônus adicional.`};
+  }
+  if(valorM&&qtdM){
+    return{titulo:`Faça ${qtdM[1]} vistorias e ganhe R$${valorM[1]} de bônus.`,
+      detalhe:`Válido uma única vez: ao completar as ${qtdM[1]} vistorias dentro do período da ação, o bônus é liberado. Vistorias extras não geram bônus adicional.`};
+  }
+  if(valorM){
+    return{titulo:`Ganhe R$${valorM[1]} por vistoria realizada nesta ação.`,
+      detalhe:'Bônus aplicado a cada vistoria feita dentro do período, sem limite de quantidade.'};
+  }
+  return{titulo:texto||'Consulte a regra desta campanha com o time de CS.',
+    detalhe:'Não foi possível interpretar automaticamente esta mecânica — confirme os detalhes com o time responsável.'};
+}
+
+function parseBrDate(s){
+  if(!s)return null;
+  const p=String(s).split('/');
+  if(p.length!==3)return null;
+  const d=new Date(+p[2],+p[1]-1,+p[0]);
+  return isNaN(d.getTime())?null:d;
+}
+
+function calcStatusFallback(row){
+  const ini=parseBrDate(row.data_inicio),fim=parseBrDate(row.data_fim);
+  if(!ini||!fim)return'';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  if(hoje<ini)return'⚫ Não iniciada';
+  if(hoje>fim)return'🔴 Finalizada';
+  return'🟢 Ativa';
+}
+
+function statusClass(s){
+  if(!s)return'stneutro';
+  if(s.includes('Ativa'))return'stativa';
+  if(s.includes('Finalizada'))return'stfim';
+  if(s.includes('iniciada'))return'stnao';
+  return'stneutro';
+}
+
+function toggleHistorico(){
+  historicoAberto=!historicoAberto;
+  pg=1;render();
+}
+
+function hideCard(){
+  document.getElementById('mcard').style.display='none';
+}
+
+function renderCard(row,extraCount){
+  const card=document.getElementById('mcard');
+  card.style.display='block';
+  const{titulo,detalhe}=parseMetaBonus(row.tipo,row.meta_bonus);
+  const statusTxt=row.status_campanha||calcStatusFallback(row);
+  const mn=(row.campanha||'').match(/^(\d+)/);
+  const nomeCampanha=mn?row.campanha.replace(/^\d+\s*-\s*/,''):(row.campanha||'—');
+  const histBtn=extraCount>0?`<button class="hbtn" type="button" onclick="toggleHistorico()">${historicoAberto?'▲ Ocultar histórico':'▾ Ver histórico completo ('+extraCount+')'}</button>`:'';
+  card.innerHTML=`
+    <div class="mctop">
+      <div class="mcname">👤 <strong>${row.primeiro_nome||'—'}</strong><span class="mcid">ID ${row.id_willy||'—'}</span></div>
+      <span class="mcstatus ${statusClass(statusTxt)}">${statusTxt||'—'}</span>
+    </div>
+    <div class="mccamp">${mn?('<span class="cn">'+mn[1]+'</span> '):''}${nomeCampanha}</div>
+    <div class="mcperiod">📅 ${row.data_inicio||'—'} a ${row.data_fim||'—'}</div>
+    <div class="mcbox">
+      <div class="mctitulo">💰 ${titulo}</div>
+      <div class="mcdetalhe">${detalhe}</div>
+    </div>
+    ${histBtn}
+  `;
+}
+
+/* Quando a busca traz um único ID, mostra o card e recolhe as outras campanhas
+   do mesmo Wily (mantendo só a ativa/mais recente), a menos que o histórico
+   esteja aberto. Sem busca por ID, a tabela funciona como antes. */
+function computeDisplayList(){
+  const fB=document.getElementById('f-busca').value.trim();
+  if(!fB){hideCard();return df;}
+  const uniqueIds=[...new Set(df.map(r=>r.id_willy).filter(Boolean))];
+  if(uniqueIds.length!==1){hideCard();return df;}
+  const idv=uniqueIds[0];
+  const rows=df.filter(r=>r.id_willy===idv);
+  let primary=rows.find(r=>(r.status_campanha||'').includes('Ativa'));
+  if(!primary){
+    primary=rows.slice().sort((a,b)=>{
+      const da=parseBrDate(a.data_inicio),db=parseBrDate(b.data_inicio);
+      if(da&&db)return db-da;
+      return 0;
+    })[0];
+  }
+  const extra=rows.filter(r=>r!==primary);
+  renderCard(primary,extra.length);
+  return historicoAberto?rows:[primary];
+}
+
 function render(){
   const sz=parseInt(document.getElementById('pgsz').value);
-  const tot=df.length,tpg=Math.max(1,Math.ceil(tot/sz));
+  const displayList=computeDisplayList();
+  const tot=displayList.length,tpg=Math.max(1,Math.ceil(tot/sz));
   if(pg>tpg)pg=tpg;
-  const ini=(pg-1)*sz,fatia=df.slice(ini,ini+sz);
+  const ini=(pg-1)*sz,fatia=displayList.slice(ini,ini+sz);
   document.getElementById('tinfo').textContent=tot.toLocaleString('pt-BR')+' registros';
   document.getElementById('pinfo').textContent='Exibindo '+(ini+1)+' a '+Math.min(ini+sz,tot)+' de '+tot;
   const pb=document.getElementById('pbts');pb.innerHTML='';
