@@ -325,9 +325,9 @@ function hideCard(){
   document.getElementById('mcard').style.display='none';
 }
 
-function montarTextoExplicacao(row, titulo, detalhe, nomeCampanha){
+function montarTextoExplicacao(row, titulo, detalhe){
   const nome = row.primeiro_nome || 'Tudo bem';
-  return `${nome}, verifiquei aqui e você está participando da ação ${nomeCampanha}! `
+  return `${nome}, verifiquei aqui e você está participando de uma campanha bônus! `
        + `A dinâmica é: ${titulo} ${detalhe} `
        + `Qualquer dúvida, é só me chamar.`;
 }
@@ -362,7 +362,7 @@ function renderCard(row,extraCount){
   const numCampanha=mn?mn[1]:null;
   const nomeCampanha=mn?row.campanha.replace(/^\d+\s*-\s*/,''):(row.campanha||'—');
   const histBtn=extraCount>0?`<button class="hbtn" type="button" onclick="toggleHistorico()">${historicoAberto?'▲ Ocultar histórico':'▾ Ver histórico completo ('+extraCount+')'}</button>`:'';
-  const textoExplicacao = montarTextoExplicacao(row, titulo, detalhe, row.campanha||nomeCampanha);
+  const textoExplicacao = montarTextoExplicacao(row, titulo, detalhe);
   const textoEscapado = textoExplicacao.replace(/'/g,"\\'").replace(/\n/g,' ');
   const imgHtml = numCampanha ? `
     <div class="mcimgwrap">
