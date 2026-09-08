@@ -264,28 +264,29 @@ function kpis(){
   document.getElementById('kv-pen').textContent=df.filter(r=>r.bateu_meta==='Pendente').length.toLocaleString('pt-BR');
 }
 
-function parseMetaBonus(tipo,texto){
+function parseMetaBonus(tipo,texto,periodo){
   texto=texto||'';
+  const per = periodo ? `entre ${periodo}` : 'dentro do período';
   const valorM=texto.match(/R\$\s*([\d.,]+)/i);
   const qtdM=texto.match(/(\d+)\s*vist/i);
   const tetoM=texto.match(/teto\D{0,4}(\d+)/i);
   const primeiraM=/primeira|1ª/i.test(texto);
   if(valorM&&primeiraM){
     return{titulo:`Ganhe R$${valorM[1]} na sua primeira vistoria.`,
-      detalhe:'Bônus único, válido apenas na primeira vistoria realizada dentro do período da ação.'};
+      detalhe:`Vale só na primeira vistoria que você fizer ${per}. A campanha não se renova: depois dessa primeira vez, não dá mais bônus.`};
   }
   if(valorM&&tetoM){
     const max=(parseFloat(valorM[1].replace(',','.'))*parseInt(tetoM[1])).toFixed(0);
     return{titulo:`Ganhe R$${valorM[1]} por vistoria realizada, até o limite de ${tetoM[1]} vistorias.`,
-      detalhe:`Cada vistoria feita dentro do período soma ao bônus, até o teto de ${tetoM[1]} vistorias (máximo R$${max}). Vistorias acima do teto não geram bônus adicional.`};
+      detalhe:`Cada vistoria feita ${per} soma ao bônus, até o teto de ${tetoM[1]} vistorias (máximo R$${max}). A campanha não se renova: depois de bater o teto ou passar do período, não dá mais bônus.`};
   }
   if(valorM&&qtdM){
     return{titulo:`Faça ${qtdM[1]} vistorias e ganhe R$${valorM[1]} de bônus.`,
-      detalhe:`Válido uma única vez: ao completar as ${qtdM[1]} vistorias dentro do período da ação, o bônus é liberado. Vistorias extras não geram bônus adicional.`};
+      detalhe:`Vale só na primeira vez que você completar as ${qtdM[1]} vistorias ${per}. A campanha não se renova: depois de bater essa meta uma vez, não dá mais bônus.`};
   }
   if(valorM){
     return{titulo:`Ganhe R$${valorM[1]} por vistoria realizada nesta ação.`,
-      detalhe:'Bônus aplicado a cada vistoria feita dentro do período, sem limite de quantidade.'};
+      detalhe:`Bônus aplicado a cada vistoria feita ${per}. A campanha não se renova depois que o período acabar.`};
   }
   return{titulo:texto||'Consulte a regra desta campanha com o time de CS.',
     detalhe:'Não foi possível interpretar automaticamente esta mecânica — confirme os detalhes com o time responsável.'};
@@ -325,11 +326,41 @@ function hideCard(){
   document.getElementById('mcard').style.display='none';
 }
 
-function montarTextoExplicacao(row, titulo, detalhe){
+function montarTextoExplicacao(row){
   const nome = row.primeiro_nome || 'Tudo bem';
-  return `${nome}, verifiquei aqui e você está participando de uma campanha bônus! `
-       + `A dinâmica é: ${titulo} ${detalhe} `
-       + `Qualquer dúvida, é só me chamar.`;
+  const texto = row.meta_bonus || '';
+  const ini = row.data_inicio || '';
+  const fim = row.data_fim || '';
+
+  const valorM=texto.match(/R\$\s*([\d.,]+)/i);
+  const qtdM=texto.match(/(\d+)\s*vist/i);
+  const tetoM=texto.match(/teto\D{0,4}(\d+)/i);
+  const primeiraM=/primeira|1ª/i.test(texto);
+
+  let linha1, linha2;
+
+  if(valorM&&primeiraM){
+    linha1=`A dinâmica é: você ganha R$${valorM[1]} de bônus na sua primeira vistoria, feita entre ${ini} e ${fim}.`;
+    linha2=`O bônus é liberado uma única vez, na primeira vistoria. Depois disso, não há um novo bônus.`;
+  } else if(valorM&&tetoM){
+    const max=(parseFloat(valorM[1].replace(',','.'))*parseInt(tetoM[1])).toFixed(0);
+    linha1=`A dinâmica é simples: você ganha R$${valorM[1]} de bônus por vistoria realizada, até completar ${tetoM[1]} vistorias.`;
+    linha2=`A campanha vale de ${ini} a ${fim} e o bônus máximo é de R$${max}. Depois de completar as ${tetoM[1]} vistorias ou após o fim do período, não há bônus adicional.`;
+  } else if(valorM&&qtdM){
+    linha1=`A dinâmica é: faça ${qtdM[1]} vistorias entre ${ini} e ${fim} e ganhe R$${valorM[1]} de bônus.`;
+    linha2=`O bônus é liberado uma única vez, quando você completar as ${qtdM[1]} vistorias. Depois de atingir a meta, não há um novo bônus.`;
+  } else if(valorM){
+    linha1=`A dinâmica é: você ganha R$${valorM[1]} de bônus por vistoria realizada entre ${ini} e ${fim}.`;
+    linha2=`Depois do fim do período, não há bônus adicional.`;
+  } else {
+    linha1=`A dinâmica é: ${texto||'consulte a regra com o time de CS'}.`;
+    linha2='';
+  }
+
+  return `${nome}, verifiquei aqui e você está participando de uma campanha de bônus!\n\n`
+       + `${linha1}\n`
+       + `${linha2}\n\n`
+       + `Ficou clara a dinâmica da campanha?`;
 }
 
 function copiarExplicacao(btnEl, texto){
@@ -356,14 +387,15 @@ function copiarExplicacao(btnEl, texto){
 function renderCard(row,extraCount){
   const card=document.getElementById('mcard');
   card.style.display='block';
-  const{titulo,detalhe}=parseMetaBonus(row.tipo,row.meta_bonus);
+  const periodoTxt=(row.data_inicio&&row.data_fim)?`${row.data_inicio} e ${row.data_fim}`:null;
+  const{titulo,detalhe}=parseMetaBonus(row.tipo,row.meta_bonus,periodoTxt);
   const statusTxt=row.status_campanha||calcStatusFallback(row);
   const mn=(row.campanha||'').match(/^(\d+)/);
   const numCampanha=mn?mn[1]:null;
   const nomeCampanha=mn?row.campanha.replace(/^\d+\s*-\s*/,''):(row.campanha||'—');
   const histBtn=extraCount>0?`<button class="hbtn" type="button" onclick="toggleHistorico()">${historicoAberto?'▲ Ocultar histórico':'▾ Ver histórico completo ('+extraCount+')'}</button>`:'';
-  const textoExplicacao = montarTextoExplicacao(row, titulo, detalhe);
-  const textoEscapado = textoExplicacao.replace(/'/g,"\\'").replace(/\n/g,' ');
+  const textoExplicacao = montarTextoExplicacao(row);
+  const textoEscapado = textoExplicacao.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
   const imgHtml = numCampanha ? `
     <div class="mcimgwrap">
       <img class="mcimg" src="${IMG_BASE_URL}${numCampanha}.png"
