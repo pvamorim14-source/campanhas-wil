@@ -70,8 +70,6 @@ tbody td{padding:9px 12px;font-size:12.5px}
 .psel{border:1px solid #e0e0e0;border-radius:7px;padding:5px 7px;font-size:11px}
 .lgpd{background:#FFF8E1;border-left:4px solid #DE8B3C;padding:10px 16px;margin:14px 22px 0;border-radius:6px;font-size:11px;color:#5D4037}
 .errmsg{background:#FFEBEE;border-left:4px solid #CD3844;padding:12px 16px;margin:14px 22px;border-radius:6px;font-size:12px;color:#C62828;display:none}
-
-/* ---- Card de mecânica (consulta por ID) ---- */
 .mcard{display:none;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:16px 20px;margin-bottom:14px;border-left:4px solid #DE8B3C}
 .mctop{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
 .mcname{font-size:14px;color:#03103E}
@@ -87,8 +85,16 @@ tbody td{padding:9px 12px;font-size:12.5px}
 .mcbox{background:#FFF8F0;border-radius:10px;padding:14px 16px}
 .mctitulo{font-size:14.5px;font-weight:700;color:#03103E;margin-bottom:6px;line-height:1.4}
 .mcdetalhe{font-size:12.5px;color:#5D4037;line-height:1.5}
-.hbtn{margin-top:12px;background:transparent;border:1px solid #DE8B3C;color:#DE8B3C;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer}
+.mcactions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.hbtn{background:transparent;border:1px solid #DE8B3C;color:#DE8B3C;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer}
 .hbtn:hover{background:#DE8B3C;color:#03103E}
+.cpybtn{background:#03103E;border:1px solid #03103E;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
+.cpybtn:hover{background:#1A1A2B}
+.cpybtn.copied{background:#2ECC71;border-color:#2ECC71}
+.mcimgwrap{margin-top:14px;text-align:center}
+.mcimg{max-width:220px;width:100%;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:block;margin:0 auto}
+.mcimglink{display:inline-block;margin-top:8px;font-size:11.5px;color:#DE8B3C;text-decoration:none;font-weight:600}
+.mcimglink:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -154,6 +160,7 @@ tbody td{padding:9px 12px;font-size:12.5px}
 <script>
 const PWD="wil2026";
 const SHEETS_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR3QKK1_8srh5bXPBwPo3mSo2oDMliyea_XoDWKhjPask9sE25IVsO-StA-1fkq5Anj5tta8u7_xM91/pub?gid=1892129561&single=true&output=csv";
+const IMG_BASE_URL="https://raw.githubusercontent.com/pvamorim14-source/campanhas-wil/main/";
 let RAW=[],df=[],pg=1,sc=null,sa=true,historicoAberto=false;
 
 function auth(){
@@ -257,14 +264,12 @@ function kpis(){
   document.getElementById('kv-pen').textContent=df.filter(r=>r.bateu_meta==='Pendente').length.toLocaleString('pt-BR');
 }
 
-/* ---------- Interpretação da mecânica (texto explicativo automático) ---------- */
 function parseMetaBonus(tipo,texto){
   texto=texto||'';
   const valorM=texto.match(/R\$\s*([\d.,]+)/i);
   const qtdM=texto.match(/(\d+)\s*vist/i);
   const tetoM=texto.match(/teto\D{0,4}(\d+)/i);
   const primeiraM=/primeira|1ª/i.test(texto);
-
   if(valorM&&primeiraM){
     return{titulo:`Ganhe R$${valorM[1]} na sua primeira vistoria.`,
       detalhe:'Bônus único, válido apenas na primeira vistoria realizada dentro do período da ação.'};
@@ -320,14 +325,52 @@ function hideCard(){
   document.getElementById('mcard').style.display='none';
 }
 
+function montarTextoExplicacao(row, titulo, detalhe, nomeCampanha){
+  const nome = row.primeiro_nome || 'Tudo bem';
+  return `${nome}, verifiquei aqui e você está participando da ação ${nomeCampanha}! `
+       + `A dinâmica é: ${titulo} ${detalhe} `
+       + `Qualquer dúvida, é só me chamar.`;
+}
+
+function copiarExplicacao(btnEl, texto){
+  const fallback=()=>{
+    const ta=document.createElement('textarea');
+    ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);
+  };
+  const marcarCopiado=()=>{
+    const txtOriginal=btnEl.textContent;
+    btnEl.textContent='✅ Copiado!';
+    btnEl.classList.add('copied');
+    setTimeout(()=>{btnEl.textContent=txtOriginal;btnEl.classList.remove('copied');},2000);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(marcarCopiado).catch(()=>{fallback();marcarCopiado();});
+  } else {
+    fallback(); marcarCopiado();
+  }
+}
+
 function renderCard(row,extraCount){
   const card=document.getElementById('mcard');
   card.style.display='block';
   const{titulo,detalhe}=parseMetaBonus(row.tipo,row.meta_bonus);
   const statusTxt=row.status_campanha||calcStatusFallback(row);
   const mn=(row.campanha||'').match(/^(\d+)/);
+  const numCampanha=mn?mn[1]:null;
   const nomeCampanha=mn?row.campanha.replace(/^\d+\s*-\s*/,''):(row.campanha||'—');
   const histBtn=extraCount>0?`<button class="hbtn" type="button" onclick="toggleHistorico()">${historicoAberto?'▲ Ocultar histórico':'▾ Ver histórico completo ('+extraCount+')'}</button>`:'';
+  const textoExplicacao = montarTextoExplicacao(row, titulo, detalhe, row.campanha||nomeCampanha);
+  const textoEscapado = textoExplicacao.replace(/'/g,"\\'").replace(/\n/g,' ');
+  const imgHtml = numCampanha ? `
+    <div class="mcimgwrap">
+      <img class="mcimg" src="${IMG_BASE_URL}${numCampanha}.png"
+           alt="Arte da campanha ${numCampanha}"
+           onerror="this.closest('.mcimgwrap').style.display='none'">
+      <a class="mcimglink" href="${IMG_BASE_URL}${numCampanha}.png" target="_blank" rel="noopener">⬇ Baixar imagem pra enviar ao Wily</a>
+    </div>` : '';
   card.innerHTML=`
     <div class="mctop">
       <div class="mcname">👤 <strong>${row.primeiro_nome||'—'}</strong><span class="mcid">ID ${row.id_willy||'—'}</span></div>
@@ -339,13 +382,14 @@ function renderCard(row,extraCount){
       <div class="mctitulo">💰 ${titulo}</div>
       <div class="mcdetalhe">${detalhe}</div>
     </div>
-    ${histBtn}
+    ${imgHtml}
+    <div class="mcactions">
+      <button class="cpybtn" type="button" onclick="copiarExplicacao(this,'${textoEscapado}')">📋 Copiar explicação pro Wily</button>
+      ${histBtn}
+    </div>
   `;
 }
 
-/* Quando a busca traz um único ID, mostra o card e recolhe as outras campanhas
-   do mesmo Wily (mantendo só a ativa/mais recente), a menos que o histórico
-   esteja aberto. Sem busca por ID, a tabela funciona como antes. */
 function computeDisplayList(){
   const fB=document.getElementById('f-busca').value.trim();
   if(!fB){hideCard();return df;}
