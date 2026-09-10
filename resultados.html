@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resultados · wil</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#f5f6fa}
+:root{--navy:#03103E;--navy2:#0A1650;--orange:#DE8B3C;--ink:#1a1a2b;--grey:#8790A0;--bg:#f5f6fa;--green:#2e7d32;--greenbg:#e8f5e9}
+#lock{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column}
+.llogo{font-size:44px;font-weight:900;color:var(--orange);margin-bottom:8px}
+.lsub{color:#B7B9CE;font-size:13px;margin-bottom:28px}
+.lbox{background:#1A1A2B;border-radius:16px;padding:32px 36px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.ltit{color:#fff;font-size:15px;font-weight:700;margin-bottom:5px}
+.ldesc{color:#6B6E85;font-size:12px;margin-bottom:20px}
+.lpwd{width:100%;padding:11px 14px;border-radius:10px;border:2px solid #2A2A3B;background:#0D1225;color:#fff;font-size:14px;outline:none;margin-bottom:10px}
+.lpwd:focus{border-color:var(--orange)}
+.lerr{color:#CD3844;font-size:12px;margin-bottom:8px;display:none}
+.lbtn{width:100%;padding:12px;border-radius:10px;border:none;background:var(--orange);color:var(--navy);font-size:14px;font-weight:700;cursor:pointer}
+.lbtn:hover{background:#c97d35}
+.lnote{color:#455A64;font-size:11px;text-align:center;margin-top:14px}
+#loading{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:9998;flex-direction:column;gap:16px}
+.spinner{width:40px;height:40px;border:4px solid #1A1A2B;border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:#B7B9CE;font-size:14px}
+#app{display:none}
+
+.topbar{background:var(--navy);padding:18px 36px;display:flex;align-items:center;gap:16px;border-bottom:3px solid var(--orange)}
+.tback{color:#B7B9CE;font-size:13px;cursor:pointer;display:none}
+.tback:hover{color:#fff}
+.tlogo{width:36px;height:36px;background:linear-gradient(135deg,#CD3844,var(--orange));border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px;flex:0 0 36px}
+.ttxt .tt{color:#fff;font-size:18px;font-weight:700}
+.ttxt .ts{color:#B7B9CE;font-size:11.5px;margin-top:2px}
+.tstatus{margin-left:auto;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700}
+.tbtn{margin-left:auto;background:transparent;border:1px solid #2ECC71;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;color:#2ECC71}
+.tbtn:hover{background:#2ECC71;color:var(--navy)}
+
+.errmsg{background:#FFEBEE;border-left:4px solid #CD3844;padding:12px 16px;margin:18px 36px 0;border-radius:6px;font-size:12px;color:#C62828;display:none}
+
+.wrap{padding:26px 36px 40px}
+
+.kpis{display:flex;gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:14px;padding:16px 20px;flex:1;box-shadow:0 1px 6px rgba(0,0,0,.06);border-top:4px solid var(--navy)}
+.kpi.grn{border-top-color:var(--green)}.kpi.ora{border-top-color:var(--orange)}.kpi.blu{border-top-color:#1565c0}
+.kl{font-size:10.5px;color:var(--grey);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.kv{font-size:26px;font-weight:700;color:var(--ink)}
+.ks{font-size:11px;color:var(--grey);margin-top:2px}
+
+.sectitle{font-size:15px;color:var(--navy);font-weight:700;margin-bottom:14px}
+
+.cgrid{display:flex;flex-direction:column;gap:12px}
+.ccard{background:#fff;border-radius:14px;padding:18px 22px;box-shadow:0 1px 6px rgba(0,0,0,.06);display:flex;align-items:center;gap:20px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.ccard:hover{border-color:var(--orange);box-shadow:0 4px 16px rgba(222,139,60,.15)}
+.cbadge{width:52px;height:52px;border-radius:12px;background:var(--navy);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex:0 0 52px}
+.cinfo{flex:1.4;min-width:0}
+.cinfo .n{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cinfo .s{font-size:11.5px;color:var(--grey);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cstatus{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;flex:0 0 auto;white-space:nowrap}
+.stativa{background:var(--greenbg);color:var(--green)}
+.stfim{background:#ffebee;color:#c62828}
+.stnao{background:#eee;color:#888}
+.cstat{flex:1;text-align:center}
+.cstat .v{font-size:18px;font-weight:700;color:var(--ink)}
+.cstat .l{font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.cstat.grn .v{color:var(--green)}.cstat.ora .v{color:var(--orange)}
+.carrow{font-size:20px;color:var(--grey);flex:0 0 auto}
+
+.row2{display:flex;gap:18px;margin-bottom:18px}
+.panel{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.panel h3{font-size:14px;color:var(--navy);margin-bottom:4px}
+.phint{font-size:11px;color:var(--grey);margin-bottom:14px}
+
+.acards{display:flex;gap:12px;flex-wrap:wrap}
+.acard{flex:1;min-width:150px;background:var(--bg);border-radius:12px;padding:14px}
+.acard .pname{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:9px;text-align:center}
+.arow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e6e8ee}
+.arow:last-child{border-bottom:none}
+.arow .l{font-size:10px;color:var(--grey)}
+.arow .v{font-size:13px;font-weight:700;color:var(--ink)}
+
+.perfrow{display:flex;gap:12px}
+.perfcard{flex:1;background:var(--bg);border-radius:12px;padding:16px;text-align:center}
+.perfcard .n{font-size:24px;font-weight:700;color:var(--ink)}
+.perfcard .l{font-size:10.5px;color:var(--grey);margin-top:2px}
+.perfcard .s{font-size:10px;color:var(--grey);margin-top:5px}
+.perfcard.dest{background:var(--navy);color:#fff}
+.perfcard.dest .n{color:#3DDC84}
+.perfcard.dest .l,.perfcard.dest .s{color:#B7B9CE}
+
+.funnel{display:flex;align-items:center;gap:8px}
+.fstep{flex:1;text-align:center;padding:14px 8px;border-radius:10px}
+.fstep .n{font-size:20px;font-weight:700}
+.fstep .l{font-size:10px;margin-top:3px}
+.farrow{color:var(--grey);font-size:15px}
+.f1{background:#eef0f4}.f2{background:#fde8d0}.f3{background:var(--greenbg)}
+.f1 .n{color:var(--ink)}.f2 .n{color:#c9711f}.f3 .n{color:var(--green)}
+
+.contwrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.contnum{flex:1;min-width:140px;text-align:center;background:var(--bg);border-radius:12px;padding:16px}
+.contnum .n{font-size:22px;font-weight:700;color:var(--ink)}
+.contnum .l{font-size:10px;color:var(--grey);margin-top:3px}
+.contarrow{font-size:18px;color:var(--orange)}
+.contfoot{font-size:12px;color:var(--grey);margin-top:12px;line-height:1.5}
+.contfoot b{color:var(--green)}
+
+.emptynote{background:#FFF8E1;border-left:4px solid var(--orange);padding:12px 16px;border-radius:8px;font-size:12px;color:#5D4037}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="llogo">wil</div>
+  <div class="lsub">Resultados de Campanhas · Acesso Restrito</div>
+  <div class="lbox">
+    <div class="ltit">🔒 Área restrita</div>
+    <div class="ldesc">Acesso liberado só pra liderança CS/CX. Contém dados de custo e desempenho.</div>
+    <input id="pwd" class="lpwd" type="password" placeholder="Digite a senha..."
+      onkeydown="if(event.key==='Enter'){event.preventDefault();auth();}">
+    <div id="perr" class="lerr">❌ Senha incorreta.</div>
+    <button class="lbtn" type="button" onclick="auth()">Entrar</button>
+    <div class="lnote">wil CS/CX · Uso restrito</div>
+  </div>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-txt">Carregando resultados...</div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="tback" id="btnvoltar" onclick="mostrarOverview()">← Voltar à visão geral</div>
+    <div class="tlogo" id="topLogo">W</div>
+    <div class="ttxt"><div class="tt" id="topTitulo">Resultados das Campanhas</div><div class="ts" id="topSub">Visão geral · todas as campanhas</div></div>
+    <span class="tstatus" id="topStatus" style="display:none"></span>
+    <button class="tbtn" onclick="recarregar()">🔄 Atualizar</button>
+  </div>
+  <div class="errmsg" id="errmsg"></div>
+  <div class="wrap" id="wrap"></div>
+</div>
+
+<script>
+const PWD="wilresultados2026";
+const SHEETS_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR3QKK1_8srh5bXPBwPo3mSo2oDMliyea_XoDWKhjPask9sE25IVsO-StA-1fkq5Anj5tta8u7_xM91/pub?gid=1892129561&single=true&output=csv";
+const ACOMP_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR3QKK1_8srh5bXPBwPo3mSo2oDMliyea_XoDWKhjPask9sE25IVsO-StA-1fkq5Anj5tta8u7_xM91/pub?gid=997163177&single=true&output=csv";
+
+let DASH=[], ACOMP={}, CAMPANHAS=[], atual=null;
+
+function auth(){
+  if(document.getElementById('pwd').value===PWD){
+    document.getElementById('lock').style.display='none';
+    document.getElementById('loading').style.display='flex';
+    sessionStorage.setItem('wil_res_ok','1');
+    carregar();
+  } else {
+    const e=document.getElementById('perr');e.style.display='block';
+    document.getElementById('pwd').value='';
+    setTimeout(()=>e.style.display='none',2000);
+  }
+}
+if(sessionStorage.getItem('wil_res_ok')==='1'){
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('lock').style.display='none';
+    document.getElementById('loading').style.display='flex';
+    carregar();
+  });
+}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur='',inQ=false;
+    for(const ch of line){
+      if(ch==='"')inQ=!inQ;
+      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    vals.push(cur.trim());
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/"/g,'').trim());
+    return obj;
+  });
+}
+
+async function carregar(){
+  document.getElementById('errmsg').style.display='none';
+  try{
+    const [r1,r2]=await Promise.all([fetch(SHEETS_URL),fetch(ACOMP_URL)]);
+    if(!r1.ok) throw new Error('Erro ao acessar a aba Dashboard');
+    const t1=await r1.text();
+    DASH=parseCSV(t1).filter(r=>r.id_willy);
+
+    ACOMP={};
+    if(r2.ok){
+      const t2=await r2.text();
+      parseCSV(t2).forEach(r=>{ if(r.campanha) ACOMP[String(r.campanha).trim()]=r; });
+    }
+
+    montarCampanhas();
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+    mostrarOverview();
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+    const err=document.getElementById('errmsg');
+    err.style.display='block';
+    err.textContent='⚠️ Erro ao carregar dados: '+e.message+' (confira se o link da aba Acompanhamento foi configurado)';
+  }
+}
+
+function recarregar(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('app').style.display='none';
+  carregar();
+}
+
+function parseBrDate(s){
+  if(!s)return null;
+  const p=String(s).split('/');
+  if(p.length!==3)return null;
+  const d=new Date(+p[2],+p[1]-1,+p[0]);
+  return isNaN(d.getTime())?null:d;
+}
+function calcStatus(row){
+  const ini=parseBrDate(row.data_inicio),fim=parseBrDate(row.data_fim);
+  if(!ini||!fim)return'—';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  if(hoje<ini)return'⚫ Não iniciada';
+  if(hoje>fim)return'🔴 Finalizada';
+  return'🟢 Ativa';
+}
+function statusClass(s){
+  if(s.includes('Ativa'))return'stativa';
+  if(s.includes('Finalizada'))return'stfim';
+  return'stnao';
+}
+function parseValor(texto){
+  const m=(texto||'').match(/R\$\s*([\d.,]+)/i);
+  return m?parseFloat(m[1].replace(',','.')):0;
+}
+
+function montarCampanhas(){
+  const grupos={};
+  DASH.forEach(r=>{
+    const mn=(r.campanha||'').match(/^(\d+)/);
+    if(!mn)return;
+    const num=mn[1];
+    if(!grupos[num]) grupos[num]={num, nome:r.campanha.replace(/^\d+\s*-\s*/,''), tipo:r.tipo, rows:[], polos:new Set(), dataIni:r.data_inicio, dataFim:r.data_fim};
+    grupos[num].rows.push(r);
+    if(r.polo) grupos[num].polos.add(r.polo);
+  });
+
+  CAMPANHAS=Object.values(grupos).map(g=>{
+    const total=g.rows.length;
+    const convertidos=g.rows.filter(r=>r.bateu_meta==='Sim');
+    const custo=convertidos.reduce((s,r)=>s+(parseFloat(r.valor_pago)||0),0);
+    const conversao=total?((convertidos.length/total)*100):0;
+    return {
+      num:g.num, nome:g.nome, tipo:g.tipo,
+      polos:[...g.polos], rows:g.rows, convertidos,
+      publico:total, custo, conversao,
+      dataIni:g.dataIni, dataFim:g.dataFim,
+      status:calcStatus({data_inicio:g.dataIni,data_fim:g.dataFim}),
+      acomp: ACOMP[g.num]||null
+    };
+  }).sort((a,b)=>b.num-a.num);
+}
+
+function fmtR$(v){ return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+function mostrarOverview(){
+  atual=null;
+  document.getElementById('btnvoltar').style.display='none';
+  document.getElementById('topLogo').textContent='W';
+  document.getElementById('topTitulo').textContent='Resultados das Campanhas';
+  document.getElementById('topSub').textContent='Visão geral · '+CAMPANHAS.length+' campanhas';
+  document.getElementById('topStatus').style.display='none';
+
+  const totalWilys=CAMPANHAS.reduce((s,c)=>s+c.publico,0);
+  const totalConv=CAMPANHAS.reduce((s,c)=>s+c.convertidos.length,0);
+  const totalCusto=CAMPANHAS.reduce((s,c)=>s+c.custo,0);
+  const convMedia=CAMPANHAS.length?(CAMPANHAS.reduce((s,c)=>s+c.conversao,0)/CAMPANHAS.length):0;
+
+  let h=`
+  <div class="kpis">
+    <div class="kpi"><div class="kl">Campanhas</div><div class="kv">${CAMPANHAS.length}</div><div class="ks">${totalWilys.toLocaleString('pt-BR')} Wilys ao todo</div></div>
+    <div class="kpi grn"><div class="kl">Conversão Média</div><div class="kv">${convMedia.toFixed(1)}%</div><div class="ks">${totalConv} converteram no total</div></div>
+    <div class="kpi ora"><div class="kl">Custo Total Investido</div><div class="kv">${fmtR$(totalCusto)}</div><div class="ks">Bônus pagos no período</div></div>
+  </div>
+  <div class="sectitle">📋 Campanhas — clique para ver o detalhe</div>
+  <div class="cgrid">`;
+
+  CAMPANHAS.forEach(c=>{
+    h+='<div class="ccard" onclick="mostrarDetalhe(\''+c.num+'\')">'
+      +'<div class="cbadge">'+c.num+'</div>'
+      +'<div class="cinfo"><div class="n">'+c.nome+'</div><div class="s">'+(c.polos.join(', ')||'—')+'</div></div>'
+      +'<span class="cstatus '+statusClass(c.status)+'">'+c.status+'</span>'
+      +'<div class="cstat"><div class="v">'+c.publico+'</div><div class="l">Wilys</div></div>'
+      +'<div class="cstat grn"><div class="v">'+c.conversao.toFixed(1)+'%</div><div class="l">Conversão</div></div>'
+      +'<div class="cstat ora"><div class="v">'+fmtR$(c.custo)+'</div><div class="l">Custo</div></div>'
+      +'<div class="carrow">›</div></div>';
+  });
+  h+='</div>';
+  if(!CAMPANHAS.length) h+='<div class="emptynote">Nenhuma campanha encontrada no Dashboard ainda.</div>';
+  document.getElementById('wrap').innerHTML=h;
+}
+
+function mostrarDetalhe(num){
+  const c=CAMPANHAS.find(x=>x.num===num);
+  if(!c)return;
+  atual=c;
+  document.getElementById('btnvoltar').style.display='block';
+  document.getElementById('topLogo').textContent=c.num;
+  document.getElementById('topTitulo').textContent=c.nome;
+  document.getElementById('topSub').textContent=(c.dataIni||'—')+' a '+(c.dataFim||'—')+' · '+c.polos.join(', ');
+  const st=document.getElementById('topStatus');
+  st.style.display='inline-block'; st.textContent=c.status; st.className='tstatus '+statusClass(c.status);
+
+  const a=c.acomp||{};
+  const elegiveis=parseInt(a.elegiveis)||c.publico;
+  const alcancados=parseInt(a.alcancados)||c.publico;
+  const realizado=a.realizado?parseInt(a.realizado):null;
+  const pos7d=a.pos_campanha_7d?parseInt(a.pos_campanha_7d):null;
+
+  let leve=0,media=0,forte=0,semDado=0;
+  c.convertidos.forEach(r=>{
+    const tv=parseFloat(r.total_vistorias);
+    if(isNaN(tv)) semDado++;
+    else if(tv<=10) leve++;
+    else if(tv<=50) media++;
+    else forte++;
+  });
+
+  const porPolo={};
+  c.rows.forEach(r=>{
+    const p=r.polo||'—';
+    if(!porPolo[p]) porPolo[p]={publico:0,convertidos:0,vistoriasEst:0};
+    porPolo[p].publico++;
+    if(r.bateu_meta==='Sim'){
+      porPolo[p].convertidos++;
+      const valorUnit=parseValor(r.meta_bonus);
+      const qtdM=(r.meta_bonus||'').match(/(\d+)\s*vist/i);
+      if(qtdM){
+        porPolo[p].vistoriasEst+=parseInt(qtdM[1]);
+      } else if(valorUnit>0){
+        const pago=parseFloat(r.valor_pago)||0;
+        porPolo[p].vistoriasEst+=Math.round(pago/valorUnit);
+      }
+    }
+  });
+
+  let h='<div class="kpis">';
+  h+='<div class="kpi"><div class="kl">Wilys Elegíveis</div><div class="kv">'+elegiveis+'</div><div class="ks">'+c.polos.length+' polo(s)</div></div>';
+  h+='<div class="kpi blu"><div class="kl">Alcançados</div><div class="kv">'+alcancados+'</div><div class="ks">'+(elegiveis?((alcancados/elegiveis)*100).toFixed(0):'—')+'% com contato válido</div></div>';
+  h+='<div class="kpi grn"><div class="kl">Bateram a Meta</div><div class="kv">'+c.convertidos.length+'</div><div class="ks">'+c.conversao.toFixed(1)+'% de conversão</div></div>';
+  h+='<div class="kpi ora"><div class="kl">Custo Total</div><div class="kv">'+fmtR$(c.custo)+'</div><div class="ks">'+(c.convertidos.length?fmtR$(c.custo/c.convertidos.length):'—')+' / Wily convertido</div></div>';
+  h+='</div>';
+
+  h+='<div class="panel" style="margin-bottom:18px"><h3>🎯 Desempenho por Polo</h3><div class="phint">Vistorias estimadas a partir da mecânica de bônus de cada polo.</div><div class="acards">';
+  Object.keys(porPolo).forEach(p=>{
+    const d=porPolo[p];
+    h+='<div class="acard"><div class="pname">'+p+'</div>'
+      +'<div class="arow"><span class="l">Elegíveis</span><span class="v">'+d.publico+'</span></div>'
+      +'<div class="arow"><span class="l">Converteram</span><span class="v">'+d.convertidos+'</span></div>'
+      +'<div class="arow"><span class="l">Vistorias (estimado)</span><span class="v">'+d.vistoriasEst+'</span></div></div>';
+  });
+  h+='</div></div>';
+
+  h+='<div class="row2">';
+  h+='<div class="panel" style="flex:1.1"><h3>👥 Perfil de Quem Converteu</h3><div class="phint">Pelo volume histórico de vistorias de cada Wily.</div>'
+    +'<div class="perfrow">'
+    +'<div class="perfcard"><div class="n">'+leve+'</div><div class="l">LEVE (1–10 vist/vida)</div></div>'
+    +'<div class="perfcard"><div class="n">'+media+'</div><div class="l">MÉDIA (11–50)</div></div>'
+    +'<div class="perfcard dest"><div class="n">'+forte+'</div><div class="l">FORTE (51+)</div></div>'
+    +'</div>'+(semDado?'<div class="phint" style="margin-top:10px">⚠️ '+semDado+' convertido(s) sem total_vistorias registrado (campanha antiga, coluna não existia ainda).</div>':'')+'</div>';
+  h+='<div class="panel" style="flex:.9"><h3>📡 Alcance da Comunicação</h3><div class="phint">Elegíveis → contato válido → converteram.</div>'
+    +'<div class="funnel">'
+    +'<div class="fstep f1"><div class="n">'+elegiveis+'</div><div class="l">ELEGÍVEIS</div></div>'
+    +'<div class="farrow">→</div>'
+    +'<div class="fstep f2"><div class="n">'+alcancados+'</div><div class="l">ALCANÇADOS</div></div>'
+    +'<div class="farrow">→</div>'
+    +'<div class="fstep f3"><div class="n">'+c.convertidos.length+'</div><div class="l">CONVERTERAM</div></div>'
+    +'</div></div>';
+  h+='</div>';
+
+  h+='<div class="panel"><h3>🔁 Continuidade Pós-Campanha</h3><div class="phint">O que os convertidos fizeram na semana seguinte, sem bônus.</div>';
+  if(realizado!==null && pos7d!==null){
+    const variacao=realizado?(((pos7d/realizado)-1)*100):0;
+    h+='<div class="contwrap">'
+      +'<div class="contnum"><div class="n">'+realizado+'</div><div class="l">VISTORIAS DURANTE A CAMPANHA</div></div>'
+      +'<div class="contarrow">→</div>'
+      +'<div class="contnum"><div class="n">'+pos7d+'</div><div class="l">VISTORIAS NOS 7 DIAS SEGUINTES</div></div>'
+      +'<div class="contnum" style="background:'+(variacao>=0?'#e8f5e9':'#ffebee')+'"><div class="n" style="color:'+(variacao>=0?'#2e7d32':'#c62828')+'">'+(variacao>=0?'+':'')+variacao.toFixed(0)+'%</div><div class="l">VARIAÇÃO PÓS-CAMPANHA</div></div>'
+      +'</div>'
+      +'<div class="contfoot">'+(variacao>=0?'O ritmo se manteve ou <b>cresceu</b> mesmo sem bônus — bom sinal de hábito criado.':'O ritmo caiu após o fim do bônus — pode indicar que o incentivo foi o principal motivador, não hábito.')+'</div>';
+  } else {
+    h+='<div class="emptynote">Ainda sem dado de "vistorias 7 dias depois" preenchido na aba Acompanhamento pra essa campanha. Volte aqui depois de uma semana do fim da ação.</div>';
+  }
+  h+='</div>';
+
+  document.getElementById('wrap').innerHTML=h;
+}
+</script>
+</body>
+</html>
